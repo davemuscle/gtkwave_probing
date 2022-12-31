@@ -105,7 +105,6 @@ foreach item $ctrl {
         set myfacs {}
         foreach signal $facs {
             if [ regexp $value $signal match ] {
-                puts "debug here"
                 lappend myfacs $signal
             }
         }
