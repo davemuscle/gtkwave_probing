@@ -12,7 +12,9 @@ TMPFILE=.tmp.wave.tcl
 rm -f $TMPFILE
 
 # Choose from list of VCD files (required)
-if [ ${#VCDS[@]} -ne 0 ]; then
+if [ ${#VCDS[@]} -eq 1 ]; then
+    VCD=${VCDS[0]}
+elif [ ${#VCDS[@]} -ne 0 ]; then
     echo "Select a VCD file to open (CTRL+C to exit):"
     select VCD in ${VCDS[@]}
     do
