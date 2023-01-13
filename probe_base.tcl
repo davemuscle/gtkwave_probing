@@ -65,9 +65,10 @@ for {set i 0} {$i < $nfacs } {incr i} {
 #    debug, fac: tb.xx[3:0]     -> tb.xx
 
 for {set i 0} {$i < [llength $facs]} {incr i} {
-    set tmp [regsub "\\\[.*\\\]$" [lindex $facs $i] ""]
-    #puts "subbed: $tmp"
-    lset facs $i $tmp
+    if {[regexp -all {(.*)(\[.*\])$} [lindex $facs $i] whole one two]} {
+        #puts "subbed [lindex $facs $i] for $one"
+        lset facs $i $one
+    }
 }
 
 set facs [lsort -unique $facs]
