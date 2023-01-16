@@ -99,7 +99,7 @@ foreach item $ctrl {
         if { [llength $myfacs] != 0 } {
             gtkwave::addSignalsFromList $myfacs
         }
-    } elseif {([lindex $item 0] == "group") || [lindex $item 0] == "avalon"} {
+    } elseif {[lindex $item 0] == "group"} {
         set value [lindex $item 1]
         set name [lindex $item 2]
         # glob signals that match the regex
