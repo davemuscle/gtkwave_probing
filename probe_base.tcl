@@ -99,7 +99,7 @@ foreach item $ctrl {
         if { [llength $myfacs] != 0 } {
             gtkwave::addSignalsFromList $myfacs
         }
-    } elseif {[lindex $item 0] == "group"} {
+    } elseif {([lindex $item 0] == "group") || [lindex $item 0] == "avalon"} {
         set value [lindex $item 1]
         set name [lindex $item 2]
         # glob signals that match the regex
@@ -111,6 +111,28 @@ foreach item $ctrl {
         }
         if { [llength $myfacs] != 0 } {
             # add grouping and signals
+            gtkwave::highlightSignalsFromList $myfacs
+            gtkwave::addSignalsFromList $myfacs
+            gtkwave::/Edit/Create_Group $name
+            if { $groups_open == 0 } {
+                gtkwave::/Edit/Toggle_Group_Open|Close
+            }
+            gtkwave::/Edit/UnHighlight_All
+        }
+    } elseif {[lindex $item 0] == "avalon"} {
+        set prefix [lindex $item 1]
+        set values {write read waitrequest address burstcount writedata byteenable readdata readdatavalid}
+        set myfacs {}
+        foreach value $values {
+            foreach signal $facs {
+                if [ regexp ${prefix}${value} $signal match ] {
+                    lappend myfacs $signal
+                }
+            }
+        }
+        set name [lindex $item 2]
+        if { [llength $myfacs] != 0 } {
+            # add grouping for avalon signals
             gtkwave::highlightSignalsFromList $myfacs
             gtkwave::addSignalsFromList $myfacs
             gtkwave::/Edit/Create_Group $name
