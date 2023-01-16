@@ -125,7 +125,7 @@ foreach item $ctrl {
         set myfacs {}
         foreach value $values {
             foreach signal $facs {
-                if [ regexp ${prefix}${value} $signal match ] {
+                if [ regexp "${prefix}${value}\$" $signal match ] {
                     lappend myfacs $signal
                 }
             }
