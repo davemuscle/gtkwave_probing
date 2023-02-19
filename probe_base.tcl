@@ -141,6 +141,28 @@ foreach item $ctrl {
             }
             gtkwave::/Edit/UnHighlight_All
         }
+    } elseif {[lindex $item 0] == "ram"} {
+        set prefix [lindex $item 1]
+        set values {we re addr d be q}
+        set myfacs {}
+        foreach value $values {
+            foreach signal $facs {
+                if [ regexp "${prefix}${value}\$" $signal match ] {
+                    lappend myfacs $signal
+                }
+            }
+        }
+        set name [lindex $item 2]
+        if { [llength $myfacs] != 0 } {
+            # add grouping for avalon signals
+            gtkwave::highlightSignalsFromList $myfacs
+            gtkwave::addSignalsFromList $myfacs
+            gtkwave::/Edit/Create_Group $name
+            if { $groups_open == 0 } {
+                gtkwave::/Edit/Toggle_Group_Open|Close
+            }
+            gtkwave::/Edit/UnHighlight_All
+        }
     } elseif {[lindex $item 0] == "format" } {
         set type [lindex $item 1]
         if { [llength $myfacs] != 0 } {
