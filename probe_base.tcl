@@ -77,116 +77,138 @@ set facs [lsort -unique $facs]
 #    puts "debug, fac: $fac"
 #}
 
+set signal_cmds {
+    "signal"
+    "fixedpoint"
+    "avalon"
+    "ram"
+}
+
+set format_cmds {
+    "format"
+    "color"
+    "fixedpoint"
+}
+
+
 # loop through the ctrl array and look for comments or signals
 # perform the appropriate gtkwave tcl command based on the type
 # if it's a signal type, do a wildcard match check before adding
-set groups_open 1
+set group_open 1
 
 foreach item $ctrl {
+    puts "Processing command: $item"
+    # make gtkwave comment
     if {[lindex $item 0] == "comment"} {
         set comment [lindex $item 1]
-        # make gtkwave comment
         gtkwave::addCommentTracesFromList $comment
-    } elseif {[lindex $item 0] == "signal"} {
-        set value [lindex $item 1]
-        # glob signals that match the regex
-        set myfacs {}
-        foreach signal $facs {
-            if [ regexp $value $signal match ] {
-                lappend myfacs $signal
-            }
-        }
-        if { [llength $myfacs] != 0 } {
-            gtkwave::addSignalsFromList $myfacs
-        }
-    } elseif {[lindex $item 0] == "group"} {
-        set value [lindex $item 1]
-        set name [lindex $item 2]
-        # glob signals that match the regex
-        set myfacs {}
-        foreach signal $facs {
-            if [ regexp $value $signal match ] {
-                lappend myfacs $signal
-            }
-        }
-        if { [llength $myfacs] != 0 } {
-            # add grouping and signals
-            gtkwave::highlightSignalsFromList $myfacs
-            gtkwave::addSignalsFromList $myfacs
-            gtkwave::/Edit/Create_Group $name
-            if { $groups_open == 0 } {
-                gtkwave::/Edit/Toggle_Group_Open|Close
-            }
-            gtkwave::/Edit/UnHighlight_All
-        }
-    } elseif {[lindex $item 0] == "avalon"} {
-        set prefix [lindex $item 1]
-        set values {write read waitrequest address burstcount writedata byteenable readdata readdatavalid}
-        set myfacs {}
-        foreach value $values {
-            foreach signal $facs {
-                if [ regexp "${prefix}${value}\$" $signal match ] {
-                    lappend myfacs $signal
-                }
-            }
-        }
-        set name [lindex $item 2]
-        if { [llength $myfacs] != 0 } {
-            # add grouping for avalon signals
-            gtkwave::highlightSignalsFromList $myfacs
-            gtkwave::addSignalsFromList $myfacs
-            gtkwave::/Edit/Create_Group $name
-            if { $groups_open == 0 } {
-                gtkwave::/Edit/Toggle_Group_Open|Close
-            }
-            gtkwave::/Edit/UnHighlight_All
-        }
-    } elseif {[lindex $item 0] == "ram"} {
-        set prefix [lindex $item 1]
-        set values {we re addr d be q}
-        set myfacs {}
-        foreach value $values {
-            foreach signal $facs {
-                if [ regexp "${prefix}${value}\$" $signal match ] {
-                    lappend myfacs $signal
-                }
-            }
-        }
-        set name [lindex $item 2]
-        if { [llength $myfacs] != 0 } {
-            # add grouping for avalon signals
-            gtkwave::highlightSignalsFromList $myfacs
-            gtkwave::addSignalsFromList $myfacs
-            gtkwave::/Edit/Create_Group $name
-            if { $groups_open == 0 } {
-                gtkwave::/Edit/Toggle_Group_Open|Close
-            }
-            gtkwave::/Edit/UnHighlight_All
-        }
-    } elseif {[lindex $item 0] == "format" } {
-        set type [lindex $item 1]
-        if { [llength $myfacs] != 0 } {
-            # apply data format to previous facs
-            gtkwave::highlightSignalsFromList $myfacs
-            gtkwave::/Edit/Data_Format/$type
-            gtkwave::/Edit/UnHighlight_All
-        }
-    } elseif {[lindex $item 0] == "color" } {
-        set type [lindex $item 1]
-        if { [llength $myfacs] != 0 } {
-            # apply data format to previous facs
-            gtkwave::highlightSignalsFromList $myfacs
-            gtkwave::/Edit/Color_Format/$type
-            gtkwave::/Edit/UnHighlight_All
-        }
-    } elseif {[lindex $item 0] == "close" } {
-        set groups_open 0
-    } elseif {[lindex $item 0] == "open"  } {
-        set groups_open 1
+        continue
     }
 
+    # change trace hierarchy
+    if {[lindex $item 0] == "hier"} {
+        gtkwave::/Edit/Set_Trace_Max_Hier [lindex $item 1]
+        continue
+    }
+
+    # make groups auto open/close
+    if {[lindex $item 0] == "close"} {
+      set group_open = 0
+      continue
+    }
+    if {[lindex $item 0] == "open"} {
+      set group_open = 1
+      continue
+    }
+ 
+    # add signals
+    if {[lindex $item 0] in $signal_cmds} {
+        gtkwave::/Edit/UnHighlight_All
+        set myfacs {}
+        # glob avalon or ram custom bundles
+        if {([lindex $item 0] == "avalon") || ([lindex $item 0] == "ram")} {
+            set prefix [lindex $item 1]
+            # avalon
+            if {[lindex $item 0] == "avalon"} {
+                set values {
+                    write read waitrequest 
+                    address burstcount 
+                    writedata byteenable readdata readdatavalid
+                }
+            # ram
+            } else {
+                set values {
+                    we re addr d be q
+                }
+            }
+            # glob signals
+            foreach value $values {
+                foreach signal $facs {
+                    set rxp "${prefix}${value}\$"
+                    if [ regexp $rxp $signal match ] {
+                        lappend myfacs $signal
+                    }
+                }
+            }
+        # glob signals from regex, no bundle
+        } else {
+            set value [lindex $item 1]
+            set rxp "^$value\$"
+            # glob signals that match the regex
+            foreach signal $facs {
+                if [ regexp $rxp $signal match ] {
+                    lappend myfacs $signal
+                }
+            }
+        }
+        # add signals if any regex hit
+        if { [llength $myfacs] != 0 } {
+            gtkwave::addSignalsFromList $myfacs
+            # also keep track of in this group variable
+        }
+        if {[lindex $item 0] ni $format_cmds} {
+            continue
+        }
+    }
+
+    # format signals from previous addition
+    if {([lindex $item 0] in $format_cmds) && ([llength $myfacs] != 0)} {
+        # apply data format
+        if {[lindex $item 0] == "format"} {
+            gtkwave::/Edit/Data_Format/[lindex $item 1]
+        # apply color format
+        } elseif {[lindex $item 0] == "color"} {
+            gtkwave::/Edit/Color_Format/[lindex $item 1]
+        # apply fixed point shift
+        } elseif {([lindex $item 0] == "fixedpoint") || ([lindex $item 0] == "fxp")} {
+            gtkwave::/Edit/Data_Format/Fixed_Point_Shift/Specify [lindex $item 2]
+            gtkwave::/Edit/Data_Format/Fixed_Point_Shift/On
+            gtkwave::/Edit/Data_Format/Signed_Decimal
+        }
+        continue
+    }
+
+    # create groupings based on new addition
+    if {[lindex $item 0] == "group"} {
+        # add grouping from signals -- this currently doesn't work
+        # would be nice if 'highlightSignalsFromList' worked the way the adder does'
+        gtkwave::/Edit/Create_Group [lindex $item 1]
+        if { $group_open == 0 } {
+            gtkwave::/Edit/Toggle_Group_Open|Close
+        }
+        continue
+    }
 
 }
+
+# Play around with these commands if adding groups in:
+
+#gtkwave::/Edit/Set_Trace_Max_Hier 0
+#gtkwave::addSignalsFromList {"top.fft.ready"}
+#gtkwave::/Edit/UnHighlight_All
+#gtkwave::/Edit/Highlight_Regexp "top.fft.u_fft_stage_control.addr(_next)\\\[.*\\\]"
+#gtkwave::/Edit/Highlight_Regexp "top.fft.ready"
+#gtkwave::/Edit/Set_Trace_Max_Hier 1
 
 gtkwave::/Time/Zoom/Zoom_Full
 gtkwave::/Edit/UnHighlight_All
