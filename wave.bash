@@ -70,9 +70,9 @@ if [ -n "$PROBE" ]; then
     sed -Ei '1s/^/set ctrl \[list\]\n/' $TMPFILE
     
     cat ${SCRIPT_DIR}/probe_base.tcl >> $TMPFILE
-    gtkwave --dark -og $VCD -S $TMPFILE &
+    gtkwave -og $VCD -S $TMPFILE &
 
 else
-    gtkwave --dark -og $VCD &
+    gtkwave -og $VCD &
 
 fi
